@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Survey Campaign Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00bcd4;
+            --secondary: #8e24aa;
+            --accent: #4caf50;
+            --dark: #0f2027;
+            --darker: #0a161b;
+            --light: #f0f8ff;
+            --medical-blue: #0077b6;
+            --medical-teal: #48cae4;
+            --medical-green: #52b788;
+            --medical-purple: #7b2cbf;
+            /* Light mode defaults */
+            --bg-color: #f8f9fa;
+            --bg-gradient: linear-gradient(45deg, #0077b6, #48cae4, #0077b6);
+            --text-color: #333;
+            --container-bg: white;
+            --container-border: rgba(0, 119, 182, 0.1);
+            --input-bg: rgba(230, 247, 255, 0.3);
+            --input-border: rgba(0, 119, 182, 0.2);
+            --result-bg: rgba(230, 247, 255, 0.5);
+            --result-border: rgba(0, 119, 182, 0.1);
+        }
+
+        /* Dark mode overrides */
+        [data-theme="dark"] {
+            --bg-color: #0a161b;
+            --bg-gradient: linear-gradient(45deg, #0f2027, #1a3c4a, #0f2027);
+            --text-color: #e6f7ff;
+            --container-bg: #1a2a3a;
+            --container-border: rgba(72, 202, 228, 0.2);
+            --input-bg: rgba(72, 202, 228, 0.1);
+            --input-border: rgba(72, 202, 228, 0.3);
+            --result-bg: rgba(72, 202, 228, 0.2);
+            --result-border: rgba(72, 202, 228, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #ffffff; /* Initial white background to match intro GIF */
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-image: var(--bg-gradient);
+            background-size: 200% 200%;
+            animation: moveGradient 10s ease infinite;
+        }
+
+        @keyframes moveGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: var(--medical-blue); /* Circle background */
+            border: 2px solid var(--container-border);
+            border-radius: 50%; /* Circular shape */
+            width: 40px; /* Fixed size for circle */
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem; /* Adjusted icon size */
+            color: white; /* Icon color */
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1); /* Slight zoom on hover */
+            background: var(--medical-teal); /* Brighter background on hover */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--medical-teal); /* Different background in dark mode */
+            border: 2px solid var(--container-border);
+            color: var(--bg-color); /* Contrast with dark mode background */
+        }
+
+        [data-theme="dark"] .theme-toggle:hover {
+            background: var(--medical-blue);
+            box-shadow: 0 4px 10px rgba(72, 202, 228, 0.4);
+        }
+
+        /* Papers animation overlay */
+        .papers-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9); /* Slightly transparent white background */
+            z-index: 9997;
+            display: none;
+            overflow: hidden;
+        }
+
+        .paper {
+            position: absolute;
+            width: 120px; /* Reduced size for better distribution */
+            height: 160px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: rotate(var(--rotation));
+            animation: scatterPaper 1.5s ease-in-out forwards;
+            opacity: 1;
+        }
+
+        @keyframes scatterPaper {
+            0% {
+                transform: translate(var(--start-x), var(--start-y)) rotate(var(--rotation));
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--end-x), var(--end-y)) rotate(var(--rotation));
+                opacity: 0;
+            }
+        }
+
+        /* Intro Animation Styles */
+        .intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff; /* Match GIF's white background */
+            opacity: 1; /* Ensure full opacity */
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .intro-gif {
+            max-width: 90%;
+            max-height: 60vh;
+            margin: 20px 0;
+            border-radius: 0; /* Remove rounded corners */
+            box-shadow: none; /* Remove shadow to eliminate card effect */
+            border: none; /* Ensure no border */
+            position: absolute;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .intro-gif.active {
+            opacity: 1;
+        }
+
+        .intro-text {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 20px 0;
+            background: linear-gradient(90deg, var(--medical-blue), var(--medical-teal), var(--medical-green));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: fadeInOut 3s infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .container {
+            background: var(--container-bg);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 1s ease-out;
+            border: 1px solid var(--container-border);
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Heading styles with hover effects */
+        h1, h2, h3 {
+            transition: transform 0.3s ease; /* Smooth transition for hover effects */
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            margin-top: 40px; /* Space to avoid overlap with theme toggle */
+            font-size: 2.8rem; /* Main heading size unchanged */
+            background: linear-gradient(45deg, var(--medical-blue), var(--medical-teal), var(--medical-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            padding-bottom: 15px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] h1 {
+            color: #ffffff; /* White heading in dark mode */
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.1);
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--medical-blue), var(--medical-teal));
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,119,182,0.3);
+        }
+
+        /* Result section heading */
+        #result h2 {
+            font-size: 2.5rem; /* Increased from 2.2rem */
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, var(--medical-blue), var(--medical-teal), var(--medical-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+        }
+
+        [data-theme="dark"] #result h2 {
+            color: #ffffff;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+        }
+
+        .result-section h3 {
+            color: var(--medical-blue);
+            margin-bottom: 15px;
+            font-size: 1.8rem; /* Increased from 1.5rem */
+            border-bottom: 2px solid var(--result-border);
+            padding-bottom: 8px;
+            font-weight: 700;
+        }
+
+        [data-theme="dark"] .result-section h3 {
+            color: #ffffff; /* White heading in dark mode */
+        }
+
+        /* Hover effect for all headings (h1, h2, h3) */
+        h1:hover, h2:hover, h3:hover {
+            animation: popShake 0.5s ease-in-out; /* Apply pop and shake animation */
+        }
+
+        @keyframes popShake {
+            0% { transform: scale(1); }
+            20% { transform: scale(1.05); } /* Zoom in */
+            40% { transform: scale(1.03) translateX(-5px); } /* Shake left */
+            60% { transform: scale(1.03) translateX(5px); } /* Shake right */
+            80% { transform: scale(1.05) translateX(-2px); } /* Small shake left */
+            100% { transform: scale(1.03) translateX(0); } /* Settle with slight zoom */
+        }
+
+        .icon-container {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 3.5rem;
+            color: var(--medical-blue);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.3rem; /* Increased from 1.1rem */
+            font-weight: 600;
+            color: var(--medical-blue);
+            transition: all 0.3s ease;
+            padding-left: 5px;
+        }
+
+        [data-theme="dark"] label {
+            color: #ffffff; /* White labels in dark mode */
+        }
+
+        label:hover {
+            color: var(--medical-teal); /* Light hover effect */
+            transform: translateX(8px);
+            text-shadow: 0 0 5px rgba(72, 202, 228, 0.2);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: 2px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--medical-teal);
+            box-shadow: 0 0 0 3px rgba(72, 202, 228, 0.3);
+            background: var(--input-bg);
+        }
+
+        /* Updated Dropdown Styling (Reverted Gradient) */
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding: 14px 40px 14px 18px;
+            border-radius: 10px;
+            border: 2px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        select:hover {
+            border-color: var(--medical-teal);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--medical-teal);
+            box-shadow: 0 0 0 3px rgba(72, 202, 228, 0.3);
+        }
+
+        /* Custom dropdown arrow */
+        select::after {
+            content: '\f078'; /* Font Awesome chevron-down */
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-color);
+            pointer-events: none;
+        }
+
+        /* Dropdown option icons */
+        select option {
+            position: relative;
+            padding-left: 30px;
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .checkbox-label:hover {
+            background: var(--input-bg);
+            transform: translateX(5px);
+        }
+
+        .checkbox-label input {
+            width: auto;
+            margin-right: 12px;
+            accent-color: var(--medical-blue);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--medical-blue), var(--medical-teal));
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 119, 182, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] button {
+            background: linear-gradient(135deg, var(--medical-blue), var(--medical-purple)); /* Adjusted for dark mode */
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 119, 182, 0.4);
+            background: linear-gradient(135deg, var(--medical-teal), var(--medical-blue));
+        }
+
+        [data-theme="dark"] button:hover {
+            background: linear-gradient(135deg, var(--medical-teal), var(--medical-purple)); /* Light hover effect in dark mode */
+            box-shadow: 0 8px 25px rgba(72, 202, 228, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+            transform: scale(0);
+            transition: transform 0.5s;
+        }
+
+        button:hover::after {
+            transform: scale(1);
+        }
+
+        #error {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid #dc3545;
+            border-radius: 8px;
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        #result {
+            display: none;
+            margin-top: 30px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .result-section {
+            background: var(--result-bg);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--result-border);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .result-section:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 119, 182, 0.1);
+        }
+
+        #email_content {
+            white-space: pre-wrap;
+            line-height: 1.8;
+            color: var(--text-color);
+            font-size: 1.05rem;
+        }
+
+        #image_preview {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 15px;
+            border: 2px solid var(--result-border);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        #image_preview:hover {
+            transform: scale(1.01);
+            box-shadow: 0 8px 25px rgba(0, 119, 182, 0.2);
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, var(--medical-purple), var(--medical-blue));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 15px;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(123, 44, 191, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(123, 44, 191, 0.4);
+            background: linear-gradient(135deg, var(--medical-blue), var(--medical-purple));
+        }
+
+        /* Loading overlay styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(255, 255, 255, 0.9);
+            z-index: 9998;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .loading-gif {
+            max-width: 80%;
+            max-height: 50vh;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--medical-blue);
+            animation: pulse 2s infinite;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2.2rem; /* Main heading size unchanged */
+                margin-top: 30px; /* Adjusted for smaller screens */
+            }
+
+            #result h2 {
+                font-size: 2.2rem; /* Adjusted for mobile */
+            }
+
+            .result-section h3 {
+                font-size: 1.6rem; /* Adjusted for mobile */
+            }
+
+            label {
+                font-size: 1.2rem; /* Adjusted for mobile */
+            }
+
+            .icon-container {
+                font-size: 3rem;
+            }
+
+            .intro-text {
+                font-size: 1.5rem;
+            }
+
+            .loading-gif {
+                max-width: 95%;
+            }
+
+            .loading-text {
+                font-size: 1.2rem;
+            }
+
+            .theme-toggle {
+                font-size: 1rem; /* Smaller icon for mobile */
+                width: 35px;
+                height: 35px;
+                top: 5px;
+                right: 10px;
+            }
+        }
+
+        /* Medical-themed decorative elements */
+        .medical-decoration {
+            position: absolute;
+            opacity: 0.1;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .dna-helix {
+            top: 10%;
+            right: 5%;
+            width: 150px;
+            height: 150px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50,10 C60,20 60,30 50,40 C40,30 40,20 50,10 Z M50,40 C60,50 60,60 50,70 C40,60 40,50 50,40 Z M50,70 C60,80 60,90 50,90 C40,90 40,80 50,70 Z" fill="%230077b6"/></svg>') no-repeat;
+        }
+
+        .heartbeat {
+            bottom: 10%;
+            left: 5%;
+            width: 120px;
+            height: 80px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><path d="M10,25 L20,10 L30,35 L40,15 L50,40 L60,20 L70,45 L80,25 L90,35" stroke="%2348cae4" fill="none" stroke-width="2"/></svg>') no-repeat;
+        }
+
+        .medical-icons-container {
+            position: absolute;
+            right: -50px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            opacity: 0.2;
+            z-index: -1;
+        }
+
+        .medical-icon {
+            font-size: 2.5rem;
+            color: var(--medical-blue);
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .floating-icons-left, .floating-icons-right {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            opacity: 0.2;
+            z-index: 0;
+        }
+
+        .floating-icons-left {
+            left: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .floating-icons-right {
+            right: -60px;
+            top: 20%;
+            transform: translateY(-20%);
+        }
+
+        .floating-icon {
+            font-size: 2.2rem;
+            color: var(--medical-teal);
+            animation: popFadeIn 1.5s ease-in-out forwards;
+        }
+
+        @keyframes popFadeIn {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .floating-icon:nth-child(1) { animation-delay: 0.2s; }
+        .floating-icon:nth-child(2) { animation-delay: 0.4s; }
+        .floating-icon:nth-child(3) { animation-delay: 0.6s; }
+        .floating-icon:nth-child(4) { animation-delay: 0.8s; }
+
+        .edit-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, var(--medical-blue), var(--medical-teal));
+            color: white;
+            border-radius: 8px;
+            margin-left: 10px;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0, 119, 182, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .edit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 119, 182, 0.4);
+            background: linear-gradient(135deg, var(--medical-teal), var(--medical-blue));
+        }
+
+        [data-theme="dark"] .edit-btn {
+            background: linear-gradient(135deg, var(--medical-blue), var(--medical-purple));
+        }
+
+        [data-theme="dark"] .edit-btn:hover {
+            background: linear-gradient(135deg, var(--medical-teal), var(--medical-purple));
+            box-shadow: 0 8px 20px rgba(72, 202, 228, 0.4);
+        }
+
+        #emailContent[contenteditable="true"] {
+            border: 2px dashed var(--medical-teal);
+            padding: 5px;
+            background: var(--input-bg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Intro Animation -->
+    <div class="intro-overlay" id="introOverlay">
+        <img src="https://i.pinimg.com/originals/cd/e2/9e/cde29ec855225656a3fa4d5f4b01227e.gif" class="intro-gif" id="gif1" alt="Medical Animation">
+        <img src="https://media.licdn.com/dms/image/v2/D5610AQEbqNFQwhH6pA/image-shrink_1280/image-shrink_1280/0/1682365075449?e=2147483647&v=beta&t=tX4DnEAtIF4ps-PuqyWzl8XDtNArHVL3ZnKmFIxgaQE" class="intro-gif" id="gif2" alt="Medical Research Animation">
+    </div>
+
+    <!-- Papers Animation Overlay -->
+    <div class="papers-overlay" id="papersOverlay">
+        <!-- Papers will be dynamically added via JavaScript -->
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <img src="https://cdn.dribbble.com/users/2520294/screenshots/7269423/alaminxyz.gif" class="loading-gif" alt="Loading Animation">
+        <div class="loading-text">Generating your campaign...</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container" id="mainContainer">
+        <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
+            <i class="fas fa-sun"></i>
+        </button>
+
+        <div class="medical-decoration dna-helix"></div>
+        <div class="medical-decoration heartbeat"></div>
+
+        <div class="medical-icons-container">
+            <i class="fas fa-heartbeat medical-icon"></i>
+            <i class="fas fa-stethoscope medical-icon"></i>
+            <i class="fas fa-syringe medical-icon"></i>
+            <i class="fas fa-pills medical-icon"></i>
+            <i class="fas fa-hospital medical-icon"></i>
+        </div>
+        <div class="floating-icons-left">
+            <i class="fas fa-heartbeat floating-icon"></i>
+            <i class="fas fa-stethoscope floating-icon"></i>
+            <i class="fas fa-syringe floating-icon"></i>
+            <i class="fas fa-capsules floating-icon"></i>
+        </div>
+        <div class="floating-icons-right">
+            <i class="fas fa-thermometer floating-icon"></i>
+            <i class="fas fa-dna floating-icon"></i>
+            <i class="fas fa-band-aid floating-icon"></i>
+            <i class="fas fa-vial floating-icon"></i>
+        </div>
+
+        <h1>Medical Survey Campaign Generator</h1>
+
+        <div class="icon-container">
+            <i id="specialty-icon" class="fas fa-user-md"></i>
+        </div>
+
+        <form id="surveyForm">
+            <div class="form-group">
+                <label for="survey_name">Survey Name</label>
+                <input type="text" id="survey_name" name="survey_name" required placeholder="Enter survey name...">
+            </div>
+
+            <div class="form-group">
+                <label for="medical_specialty">Medical Specialty</label>
+                <select id="medical_specialty" name="medical_specialty">
+                    <option value="general" data-icon="fa-user-md">General</option>
+                    <option value="cardiology" data-icon="fa-heartbeat">Cardiology</option>
+                    <option value="oncology" data-icon="fa-ribbon">Oncology</option>
+                    <option value="primary_care" data-icon="fa-stethoscope">Primary Care</option>
+                    <option value="neurology" data-icon="fa-brain">Neurology</option>
+                    <option value="pediatrics" data-icon="fa-baby">Pediatrics</option>
+                    <option value="psychiatry" data-icon="fa-user-injured">Psychiatry</option>
+                    <option value="emergency_medicine" data-icon="fa-ambulance">Emergency Medicine</option>
+                    <option value="surgery" data-icon="fa-syringe">Surgery</option>
+                    <option value="radiology" data-icon="fa-x-ray">Radiology</option>
+                    <option value="pharmacy" data-icon="fa-pills">Pharmacy</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tone">Tone</label>
+                <select id="tone" name="tone">
+                    <option value="professional" data-icon="fa-briefcase">Professional</option>
+                    <option value="casual" data-icon="fa-smile">Casual</option>
+                    <option value="educational" data-icon="fa-book">Educational</option>
+                    <option value="compelling" data-icon="fa-exclamation-circle">Compelling</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="image_style">Image Style</label>
+                <select id="image_style" name="image_style">
+                    <option value="professional" data-icon="fa-briefcase">Professional</option>
+                    <option value="infographic" data-icon="fa-chart-bar">Infographic</option>
+                    <option value="medical_illustration" data-icon="fa-heartbeat">Medical Illustration</option>
+                    <option value="clean_modern" data-icon="fa-paint-brush">Clean Modern</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="include_text" name="include_text" checked>
+                    Include Text Overlay
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label for="compensation">Compensation ($ USD)</label>
+                <input type="number" id="compensation" name="compensation" min="0" required placeholder="Enter amount...">
+            </div>
+
+            <div class="form-group">
+                <label for="loi">Length of Interview (minutes)</label>
+                <input type="number" id="loi" name="loi" min="1" required placeholder="Enter duration...">
+            </div>
+
+            <div class="form-group" id="educational_info_div" style="display: none;">
+                <label for="educational_info">Educational Information</label>
+                <textarea id="educational_info" name="educational_info" rows="4" placeholder="Enter educational content..."></textarea>
+            </div>
+
+            <button type="submit" id="generateBtn">
+                <i class="fas fa-flask"></i> Generate Campaign
+            </button>
+        </form>
+
+        <div id="error"></div>
+
+        <div id="result">
+            <h2>Generated Campaign</h2>
+            
+            <div class="result-section" id="imageResult" style="display: none; padding: 0; border: none; background: none; box-shadow: none;">
+                <img id="generatedImage" src="" alt="Generated survey banner" style="width: 450px; height: 280px; border-radius: 12px; border: 2px solid rgba(0, 119, 182, 0.1); box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: block; margin: 0 auto;">
+            </div>
+
+            <div class="result-section" id="textResult" style="display: none; margin-top: 20px; background: var(--container-bg); padding: 15px; border-radius: 5px;">
+                <h3><i class="fas fa-envelope"></i> Generated Email Content</h3>
+                <div id="emailContent" style="white-space: pre-line;"></div>
+                <div style="text-align: right; margin-top: 10px;">
+                    <button id="editEmailBtn" class="edit-btn">Edit Email</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Theme toggle functionality
+            const themeToggle = $('#themeToggle');
+            const body = $('body');
+            const themeIcon = themeToggle.find('i');
+
+            // Load saved theme from localStorage
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            body.attr('data-theme', savedTheme);
+            themeIcon.removeClass('fa-sun fa-moon').addClass(savedTheme === 'dark' ? 'fa-sun' : 'fa-moon');
+
+            themeToggle.click(function() {
+                const currentTheme = body.attr('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                body.attr('data-theme', newTheme);
+                themeIcon.removeClass('fa-sun fa-moon').addClass(newTheme === 'dark' ? 'fa-sun' : 'fa-moon');
+                localStorage.setItem('theme', newTheme);
+
+                // Apply theme-based background after intro
+                body.css({
+                    'background-image': 'var(--bg-gradient)',
+                    'background-size': '200% 200%',
+                    'animation': 'moveGradient 10s ease infinite'
+                });
+            });
+
+            // Handle intro animation sequence
+            $('#loadingOverlay').hide();
+            $('#papersOverlay').hide();
+            const gif1 = $('#gif1');
+            const gif2 = $('#gif2');
+            
+            // Start with first GIF visible
+            gif1.addClass('active');
+            
+            // After 4 seconds, fade out first GIF and fade in second GIF
+            setTimeout(function() {
+                gif1.removeClass('active');
+                setTimeout(function() {
+                    gif2.addClass('active');
+                }, 600);
+            }, 6000);
+            
+            // After another 4 seconds, fade out everything and show main content
+            setTimeout(function() {
+                $('#introOverlay').fadeOut(1000, function() {
+                    $('#mainContainer').fadeIn(800);
+                    $('#loadingOverlay').hide();
+                    // Apply theme-based background after intro fades out
+                    body.css({
+                        'background-color': 'var(--bg-color)',
+                        'background-image': 'var(--bg-gradient)',
+                        'background-size': '200% 200%',
+                        'animation': 'moveGradient 10s ease infinite'
+                    });
+                });
+            }, 9000);
+
+            const specialtyIcons = {
+                general: 'fas fa-user-md',
+                cardiology: 'fas fa-heartbeat',
+                oncology: 'fas fa-ribbon',
+                primary_care: 'fas fa-stethoscope',
+                neurology: 'fas fa-brain',
+                pediatrics: 'fas fa-baby',
+                psychiatry: 'fas fa-user-injured',
+                emergency_medicine: 'fas fa-ambulance',
+                surgery: 'fas fa-syringe',
+                radiology: 'fas fa-x-ray',
+                pharmacy: 'fas fa-pills'
+            };
+
+            // Change icon based on specialty
+            $('#medical_specialty').change(function() {
+                const val = $(this).val();
+                $('#specialty-icon').attr('class', specialtyIcons[val] + ' pulse');
+            });
+
+            // Show/hide educational info based on tone
+            $('#tone').change(function() {
+                if ($(this).val() === 'educational') {
+                    $('#educational_info_div').show(300);
+                    $('#educational_info').prop('required', true);
+                } else {
+                    $('#educational_info_div').hide(300);
+                    $('#educational_info').prop('required', false);
+                }
+            });
+
+            // Email editing functionality
+            const editEmailBtn = $('#editEmailBtn');
+            const emailContent = $('#emailContent');
+
+            editEmailBtn.click(function() {
+                const isEditing = emailContent.attr('contenteditable') === 'true';
+                if (isEditing) {
+                    // Save changes
+                    emailContent.attr('contenteditable', 'false');
+                    editEmailBtn.text('Edit Email');
+                } else {
+                    // Enable editing
+                    emailContent.attr('contenteditable', 'true');
+                    emailContent.focus();
+                    editEmailBtn.text('Save Changes');
+                }
+            });
+
+            // Add icons to dropdown options
+            $('select').each(function() {
+                const $select = $(this);
+                $select.find('option').each(function() {
+                    const $option = $(this);
+                    const iconClass = $option.data('icon');
+                    if (iconClass) {
+                        $option.css({
+                            'position': 'relative',
+                            'padding-left': '40px'
+                        });
+                        // Since <option> doesn't support pseudo-elements, we'll style via JavaScript
+                        $option.wrapInner(`<span class="option-text"></span>`);
+                        $option.prepend(`<i class="fas ${iconClass} option-icon" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--medical-blue);"></i>`);
+                    }
+                });
+            });
+
+            // Animate icons on dropdown interaction
+            $('select').on('focus click', function() {
+                $(this).find('.option-icon').each(function() {
+                    $(this).css({
+                        'animation': 'popIcon 0.5s ease-in-out'
+                    });
+                });
+            });
+
+            // Define the pop animation for icons
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = `
+                @keyframes popIcon {
+                    0% { transform: translateY(-50%) scale(1); opacity: 0.7; }
+                    50% { transform: translateY(-50%) scale(1.3); opacity: 1; }
+                    100% { transform: translateY(-50%) scale(1); opacity: 0.7; }
+                }
+            `;
+            document.head.appendChild(styleSheet);
+
+            // Function to create and animate papers
+            function createPapers() {
+                const papersOverlay = $('#papersOverlay');
+                papersOverlay.empty(); // Clear any existing papers
+
+                // Create 50 paper elements
+                for (let i = 0; i < 50; i++) {
+                    const rotation = Math.random() * 60 - 30; // Random rotation between -30 and 30 degrees
+                    const startX = Math.random() * 100 - 50; // Random start X position (-50% to 50%)
+                    const startY = Math.random() * 100 - 50; // Random start Y position (-50% to 50%)
+                    const endX = (Math.random() * 200 - 100) + startX; // Random end X position
+                    const endY = (Math.random() * 200 - 100) + startY; // Random end Y position
+
+                    const paper = $('<div class="paper"></div>').css({
+                        '--rotation': `${rotation}deg`,
+                        '--start-x': `${startX}vw`,
+                        '--start-y': `${startY}vh`,
+                        '--end-x': `${endX}vw`,
+                        '--end-y': `${endY}vh`,
+                        'left': `${Math.random() * 100}%`,
+                        'top': `${Math.random() * 100}%`
+                    });
+
+                    papersOverlay.append(paper);
+                }
+            }
+
+            // Form submission with papers animation
+            $('#surveyForm').submit(function(e) {
+                e.preventDefault();
+                $('#error').hide().empty();
+                $('#result').hide();
+                $('#textResult').hide();
+                $('#imageResult').hide();
+
+                // Show papers animation
+                createPapers();
+                $('#papersOverlay').css('display', 'block');
+
+                // After 1.5 seconds, fade out papers and show loading overlay
+                setTimeout(() => {
+                    $('#papersOverlay').fadeOut(300, () => {
+                        $('#loadingOverlay').fadeIn(300);
+                    });
+                }, 1500);
+
+                // After 4 seconds, hide loading overlay and proceed with form submission
+                setTimeout(() => {
+                    $('#loadingOverlay').fadeOut(300, () => {
+                        // Show loading state on button
+                        const btn = $('#generateBtn');
+                        const originalText = btn.html();
+                        btn.html('<i class="fas fa-spinner fa-spin"></i> Generating...').prop('disabled', true);
+
+                        // Perform fetch request
+                        const formData = new FormData(this);
+                        fetch('/generate', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Display the generated image
+                                document.getElementById('generatedImage').src = `data:image/png;base64,${data.image_base64}`;
+                                document.getElementById('imageResult').style.display = 'block';
+                                
+                                // Display the generated text
+                                document.getElementById('emailContent').textContent = data.email_content;
+                                document.getElementById('textResult').style.display = 'block';
+                                
+                                // Ensure email content is not editable by default
+                                emailContent.attr('contenteditable', 'false');
+                                editEmailBtn.text('Edit Email');
+                                
+                                // Show result section and scroll to it
+                                $('#result').show();
+                                $('html, body').animate({
+                                    scrollTop: $('#result').offset().top
+                                }, 500);
+                            } else {
+                                // Error handling
+                                $('#error').text(data.errors.join('\n')).show();
+                            }
+                        })
+                        .catch(error => {
+                            $('#error').text('An error occurred: ' + error.message).show();
+                        })
+                        .finally(() => {
+                            btn.html(originalText).prop('disabled', false);
+                        });
+                    });
+                }, 5500); // 1500ms (papers) + 4000ms (loading overlay)
+            });
+        });
+    </script>
+</body>
+</html>
