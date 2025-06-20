@@ -11,24 +11,26 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("No Gemini API key found. Please set the GEMINI_API_KEY environment variable.")
 
-# Try to import the working Google GenAI client (as used in img_maker.py)
+# Initialize Google GenAI client with error handling
+client = None
+GEMINI_AVAILABLE = False
 try:
     from google import genai
     from google.genai import types
     client = genai.Client(api_key=GEMINI_API_KEY)
     GEMINI_AVAILABLE = True
     print("Using new Google GenAI client")
-except ImportError:
+except ImportError as e:
+    print(f"Import error for new Google GenAI: {str(e)}")
     try:
-        # Fallback to older google-generativeai if available
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
+        client = genai.GenerativeModel('gemini-1.5-flash')  # Adjust model if needed
         GEMINI_AVAILABLE = True
         print("Using older google-generativeai")
-    except ImportError:
-        GEMINI_AVAILABLE = False
+    except ImportError as e2:
+        print(f"Import error for older google-generativeai: {str(e2)}")
         print("No Google GenAI packages available, using fallback only")
-
 
 def construct_image_prompt(survey_name, medical_specialty, tone, image_style="professional", include_text=True):
     base_prompt = f"""
@@ -152,7 +154,7 @@ def generate_survey_image(survey_name, medical_specialty="general", tone="profes
     print(f"Specialty: {medical_specialty} | Style: {image_style} | Tone: {tone}")
     print("-" * 60)
 
-    if GEMINI_AVAILABLE:
+    if GEMINI_AVAILABLE and client is not None:
         pil_image, image_filename, image_base64, image_message = _try_new_gemini_api(
             prompt, survey_name, save_filename)
         if pil_image is not None:
@@ -163,11 +165,13 @@ def generate_survey_image(survey_name, medical_specialty="general", tone="profes
 
 def _try_new_gemini_api(prompt, survey_name, save_filename=None):
     try:
-        response = client.models.generate_content(
+        if client is None:
+            raise ValueError("Gemini client is not initialized")
+        response = client.generate_content(
             model="gemini-1.5-flash",  # Update to correct model
             contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=['IMAGE']
+            generation_config=types.GenerationConfig(
+                response_mime_types=['image/png']  # Specify image output
             )
         )
         image_message = "AI-generated image created successfully"
@@ -199,31 +203,41 @@ def _generate_fallback_image(survey_name, medical_specialty, save_filename=None)
         from PIL import Image, ImageDraw
         img = Image.new('RGB', (1280, 720), color=(135, 206, 235))  # Light blue background
         d = ImageDraw.Draw(img)
-        d.text((10, 10), f"{survey_name} - {medical_specialty}", fill=(0, 0, 255))
+        d.text((10, 10), f"{survey_name} - {medical_specialty}", fill=(0, 0, 255), font_size=20)  # Title
 
-        # Specialty-specific fallback images
+        # Specialty-specific fallback images with text and simple shapes
         if medical_specialty.lower() == "cardiology":
-            d.text((10, 50), "Heart & ECG", fill=(255, 0, 0))  # Red text for heart
+            d.text((10, 50), "Heart & ECG", fill=(255, 0, 0), font_size=20)  # Red text
+            d.ellipse([50, 100, 150, 200], fill=(255, 0, 0))  # Heart shape approximation
         elif medical_specialty.lower() == "oncology":
-            d.text((10, 50), "Cells & Microscope", fill=(255, 165, 0))  # Orange for cells
+            d.text((10, 50), "Cells & Microscope", fill=(255, 165, 0), font_size=20)  # Orange
+            d.ellipse([50, 100, 100, 150], fill=(255, 165, 0))  # Cell
         elif medical_specialty.lower() == "primary_care":
-            d.text((10, 50), "Patient Care", fill=(0, 128, 0))  # Green for care
+            d.text((10, 50), "Patient Care", fill=(0, 128, 0), font_size=20)  # Green
+            d.rectangle([50, 100, 150, 200], outline=(0, 128, 0))  # Patient bed
         elif medical_specialty.lower() == "neurology":
-            d.text((10, 50), "Brain & Neurons", fill=(128, 0, 128))  # Purple for brain
+            d.text((10, 50), "Brain & Neurons", fill=(128, 0, 128), font_size=20)  # Purple
+            d.ellipse([50, 100, 150, 150], fill=(128, 0, 128))  # Brain
         elif medical_specialty.lower() == "pharmacy":
-            d.text((10, 50), "Medications", fill=(0, 0, 255))  # Blue for meds
+            d.text((10, 50), "Medications", fill=(0, 0, 255), font_size=20)  # Blue
+            d.rectangle([50, 100, 100, 150], fill=(0, 0, 255))  # Pill
         elif medical_specialty.lower() == "pediatrics":
-            d.text((10, 50), "Child Care", fill=(255, 215, 0))  # Yellow for kids
+            d.text((10, 50), "Child Care", fill=(255, 215, 0), font_size=20)  # Yellow
+            d.ellipse([50, 100, 100, 150], fill=(255, 215, 0))  # Child face
         elif medical_specialty.lower() == "psychiatry":
-            d.text((10, 50), "Mental Health", fill=(75, 0, 130))  # Indigo for mind
+            d.text((10, 50), "Mental Health", fill=(75, 0, 130), font_size=20)  # Indigo
+            d.polygon([50, 100, 100, 150, 150, 100], fill=(75, 0, 130))  # Mind wave
         elif medical_specialty.lower() == "surgery":
-            d.text((10, 50), "Surgical Tools", fill=(139, 69, 19))  # Brown for tools
+            d.text((10, 50), "Surgical Tools", fill=(139, 69, 19), font_size=20)  # Brown
+            d.line([50, 100, 150, 100], fill=(139, 69, 19), width=5)  # Scalpel
         elif medical_specialty.lower() == "emergency_medicine":
-            d.text((10, 50), "Urgent Care", fill=(255, 0, 0))  # Red for emergency
+            d.text((10, 50), "Urgent Care", fill=(255, 0, 0), font_size=20)  # Red
+            d.rectangle([50, 100, 150, 150], outline=(255, 0, 0))  # Emergency sign
         elif medical_specialty.lower() == "radiology":
-            d.text((10, 50), "Scans & Imaging", fill=(0, 255, 255))  # Cyan for scans
+            d.text((10, 50), "Scans & Imaging", fill=(0, 255, 255), font_size=20)  # Cyan
+            d.rectangle([50, 100, 150, 120], fill=(0, 255, 255))  # Scan line
         else:
-            d.text((10, 50), "General Medical", fill=(0, 0, 0))  # Black for general
+            d.text((10, 50), "General Medical", fill=(0, 0, 0), font_size=20)  # Black
 
         if save_filename:
             image_filename = save_filename
